@@ -1,64 +1,133 @@
 \documentclass{article}
-\usepackage[a4paper,landscape,margin=0.8cm]{geometry}
+\usepackage[a4paper,landscape,margin=0.7cm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage[spanish]{babel}
+\usepackage[spanish,es-noshorthands]{babel}
 \usepackage{newtxtext,newtxmath}   % Times New Roman
 \usepackage{multicol}
 \usepackage{xcolor}
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{2pt}
-\setlength{\columnsep}{0.8cm}
+\setlength{\parskip}{1pt}
+\setlength{\columnsep}{0.7cm}
 \setlength{\columnseprule}{0.3pt}
-\newcommand{\ej}[1]{\par\smallskip\textbf{Ejercicio #1.}\ }
-\newcommand{\rta}{\par\textbf{Respuesta:}\ }
-\newcommand{\cod}[1]{{\ttfamily\fontsize{6.5}{7.5}\selectfont #1}}
+\newcommand{\ej}[1]{\par\smallskip\textbf{Ejercicio #1.}\par}
+\newcommand{\preg}{\par\textbf{Pregunta.}\ }
+\newcommand{\rta}{\par\textbf{Respuesta.}\ }
+\newcommand{\cod}[1]{{\ttfamily\fontsize{6.3}{7.3}\selectfont #1}}
+\newcommand{\codl}[1]{\par\hspace*{1em}\cod{#1}}
+\newcommand{\itm}[1]{\par\hspace*{0.6em}#1\ }
 
 \begin{document}
 \color{black}
-\fontsize{8}{9.6}\selectfont
+\fontsize{7.5}{8.9}\selectfont
 \begin{multicols}{2}
 
-\ej{1} \cod{xTaskCreate(tareaRed,"RED",3072,NULL,3,\&hRed); xTaskCreate(tareaLog,"LOG",2048,NULL,1,\&hLog);}
-¿Qué son los 6 argumentos, quién tiene más prioridad y RED se ejecuta siempre?
-\rta (1) función de la tarea, (2) nombre, (3) tamaño de pila (en bytes en ESP-IDF/Arduino-ESP32), (4) parámetro, (5) prioridad, (6) puntero donde se guarda el handle. RED (3) tiene mayor prioridad que LOG (1). No se ejecuta siempre: puede bloquearse, suspenderse o ser desplazada por otra de mayor prioridad. Se debe verificar que retorne \cod{pdPASS}.
+\ej{1}
+\codl{xTaskCreate(tareaRed, "RED", 3072, NULL, 3, \&hRed);}
+\codl{xTaskCreate(tareaLog, "LOG", 2048, NULL, 1, \&hLog);}
+\preg Indique qué representan los seis argumentos, qué tarea tiene mayor prioridad y si la creación garantiza que RED se ejecutará permanentemente.
+\rta
+\itm{a)} Argumentos: (1) función de la tarea; (2) nombre; (3) tamaño de pila (en bytes en ESP-IDF/Arduino-ESP32); (4) parámetro; (5) prioridad; (6) dirección donde se guarda el handle.
+\itm{b)} RED (prioridad 3) tiene mayor prioridad que LOG (1).
+\itm{c)} No. RED puede bloquearse, suspenderse o ser desplazada por una tarea de mayor prioridad. Además, antes de asumir que se creó hay que verificar que retorne \cod{pdPASS}.
 
-\ej{2} A (prio 4): \cod{procesar(); vTaskDelay(10 ms);} \ B (prio 2): \cod{registrar(); vTaskDelay(50 ms);}. A acaba de llamar a \cod{vTaskDelay} y B está lista. ¿Quién ejecuta y qué pasa al vencer el retraso de A?
-\rta A pasa de Running a Blocked y B pasa de Ready a Running. A los 10 ms A vuelve a Ready y, por tener mayor prioridad, desplaza a B de inmediato. \cod{vTaskDelay} no consume CPU: bloquea la tarea.
+\ej{2}
+\codl{void A(void *p) \{ for(;;) \{ procesar(); vTaskDelay(pdMS\_TO\_TICKS(10)); \} \}}
+\codl{void B(void *p) \{ for(;;) \{ registrar(); vTaskDelay(pdMS\_TO\_TICKS(50)); \} \}}
+\preg A tiene prioridad 4 y B prioridad 2. A acaba de llamar a vTaskDelay(10 ms) y B está lista. ¿Quién ejecuta y qué ocurre cuando vence el retraso de A?
+\rta
+\itm{a)} Ejecuta B: A pasa de Running a Blocked y B pasa de Ready a Running.
+\itm{b)} A los 10 ms, A vuelve a Ready y, por tener mayor prioridad, desplaza inmediatamente a B. \cod{vTaskDelay} no consume CPU, solo bloquea la tarea.
 
-\ej{3} \cod{for(;;)\{ trabajo(); vTaskDelay(pdMS\_TO\_TICKS(20)); \}}, el trabajo dura 7 ms. ¿Intervalo entre inicios? ¿Cómo lograr período de 20 ms?
-\rta Intervalo $\approx 7+20=27$ ms, porque \cod{vTaskDelay} espera 20 ms \emph{después} del trabajo (hay deriva). Para 20 ms fijos usar \cod{vTaskDelayUntil}:
-\cod{TickType\_t ant=xTaskGetTickCount(); for(;;)\{ trabajo(); vTaskDelayUntil(\&ant,pdMS\_TO\_TICKS(20)); \}}. El trabajo debe terminar antes del siguiente instante.
+\ej{3}
+\codl{for (;;) \{ trabajo(); vTaskDelay(pdMS\_TO\_TICKS(20)); \}}
+\preg El trabajo dura 7 ms constantes. Calcule el intervalo entre inicios de trabajo. ¿Cómo mantener un período de 20 ms?
+\rta
+\itm{a)} Intervalo $= 7 + 20 = 27$ ms, porque \cod{vTaskDelay} espera 20 ms \emph{después} de terminar el trabajo (genera deriva).
+\itm{b)} Usar \cod{vTaskDelayUntil}, que toma como referencia el inicio anterior:
+\codl{TickType\_t ant = xTaskGetTickCount();}
+\codl{for(;;)\{ trabajo(); vTaskDelayUntil(\&ant, pdMS\_TO\_TICKS(20)); \}}
+\par El trabajo debe terminar antes del siguiente instante previsto.
 
-\ej{4} En t=0: A (prio 3) ejecuta 4 ms y bloquea 8 ms (de t=4 a t=12), luego necesita 2 ms más. B (prio 2) necesita 6 ms. C (prio 1) necesita 3 ms. Ejecución entre t=0 y t=13.
-\rta $[0,4)$: A. \ $[4,10)$: B (termina). \ $[10,12)$: C (2 de sus 3 ms). \ En t=12 A vuelve a Ready y desplaza a C. \ $[12,13)$: A (1 de sus 2 ms; terminaría en t=14). C queda Ready con 1 ms pendiente. La prioridad solo decide entre tareas listas.
+\ej{4}
+\codl{t=0: A(prio 3) ejecuta 4 ms y bloquea 8 ms.}
+\codl{B(prio 2) requiere 6 ms de CPU y luego termina.}
+\codl{C(prio 1) requiere 3 ms de CPU y luego termina.}
+\preg Construya el intervalo de ejecución entre t=0 y t=13 ms. Considere que el bloqueo de A comienza en t=4 y vence en t=12; al despertar A necesita 2 ms más de CPU.
+\rta
+\itm{\textbf{$[0,4)$:}} A (mayor prioridad). \quad \textbf{$[4,10)$:} B, termina. \quad \textbf{$[10,12)$:} C, ejecuta 2 de sus 3 ms.
+\itm{\textbf{$[12,13)$:}} A despierta, vuelve a Ready y desplaza a C; ejecuta 1 de sus 2 ms (terminaría en t=14).
+\par C queda en Ready con 1 ms pendiente. La prioridad solo decide entre tareas listas.
 
-\ej{5} \cod{alta(): while(true)\{ calcular(); \}} (prio 5), \cod{baja(): while(true)\{ atender(); \}} (prio 1), mismo núcleo. ¿Qué ocurre y cómo corregir?
-\rta \emph{alta} nunca se bloquea, así que \emph{baja} sufre inanición (nunca obtiene CPU). Poner delay en \emph{baja} no sirve. Se corrige en \emph{alta}: que espere un evento, cola, notificación o use \cod{vTaskDelay} si es periódica; o replantear prioridades. \cod{yield()} no garantiza que corra una tarea de menor prioridad.
+\ej{5}
+\codl{void alta(void *p) \{ while (true) \{ calcular(); \} \}}
+\codl{void baja(void *p) \{ while (true) \{ atender(); \} \}}
+\preg alta tiene prioridad 5, baja prioridad 1, ambas fijadas al mismo núcleo. Explique qué se observa y proponga una corrección.
+\rta
+\itm{a)} \emph{alta} nunca se bloquea y siempre está Ready/Running, así que \emph{baja} sufre \textbf{inanición}: nunca obtiene CPU.
+\itm{b)} Corrección en \emph{alta} (no en \emph{baja}): que espere un evento, cola o notificación, o use \cod{vTaskDelay} si es periódica; o replantear las prioridades. \cod{yield()} no garantiza que corra una tarea de menor prioridad.
 
-\ej{6} A y B (prio 2) listas sin bloqueos; C (prio 3) bloqueada hasta t=5 ms. ¿Cómo se reparte la CPU? ¿Se puede predecir el orden de los \cod{Serial}?
-\rta Antes de t=5, A y B se alternan por \emph{time slicing} (en cada tick). En t=5 C se desbloquea y desplaza a A y B por mayor prioridad. No se puede predecir el orden exacto de las impresiones: el puerto serie añade latencia, bloqueos e intercalados.
+\ej{6}
+\codl{A y B: prioridad 2; ambas listas, sin bloqueos.}
+\codl{C: prioridad 3, bloqueada hasta t=5 ms.}
+\preg Explique cómo se distribuye CPU antes y después de t=5 ms. ¿Puede predecirse el orden exacto de las impresiones Serial?
+\rta
+\itm{a)} Antes de t=5: A y B comparten el núcleo por \emph{time slicing} (turnos según el tick).
+\itm{b)} En t=5: C se desbloquea y desplaza a A y B por tener mayor prioridad.
+\itm{c)} No. El puerto serie añade latencia, bloqueos e intercalados, así que el orden exacto no es predecible.
 
 \columnbreak
 
-\ej{7} \cod{xTaskCreate(tarea,"T",2048,NULL,2,\&h); vTaskSuspend(h); /*100 ms*/ vTaskResume(h);} ¿Transiciones de estado? ¿Los 100 ms la despiertan solos?
-\rta Al crearse, T pasa a Ready (y luego puede ir a Running). \cod{vTaskSuspend} la pasa a Suspended; el paso del tiempo \textbf{no} la despierta. \cod{vTaskResume} la devuelve a Ready y correrá cuando el planificador la elija. Suspended $\neq$ Blocked: Blocked sí tiene condición de tiempo o evento para salir.
+\ej{7}
+\codl{xTaskCreate(tarea, "T", 2048, NULL, 2, \&h);}
+\codl{vTaskSuspend(h);}
+\codl{/* transcurren 100 ms */}
+\codl{vTaskResume(h);}
+\preg Describa las transiciones de estado posibles y explique si el paso de 100 ms despierta por sí solo a T.
+\rta
+\itm{a)} Creación $\to$ Ready (puede pasar a Running) $\to$ \cod{vTaskSuspend} $\to$ Suspended $\to$ \cod{vTaskResume} $\to$ Ready; correrá cuando el planificador la elija.
+\itm{b)} No. Una tarea Suspended no despierta con el tiempo; solo con \cod{vTaskResume}. Eso la diferencia de Blocked, que sí sale al vencer un tiempo o llegar un evento.
 
-\ej{8} X (prio 4) espera 100 ms por ciclo; Y (prio 1) calcula 15 ms y espera 5 ms. ¿X consume más CPU por tener mayor prioridad?
-\rta No. La prioridad solo define quién va primero cuando ambas están listas, no cuánta CPU recibe. X pasa casi todo el tiempo bloqueada y usa poca CPU; Y aprovecha la CPU mientras X está bloqueada. La carga real se determina midiendo.
+\ej{8}
+\codl{Tarea X: prioridad 4, espera 100 ms por ciclo.}
+\codl{Tarea Y: prioridad 1, calcula durante 15 ms y espera 5 ms.}
+\preg ¿Es correcto afirmar que X consume más CPU por tener prioridad mayor? Fundamente.
+\rta No. La prioridad define quién ejecuta primero cuando ambas están listas, no cuánta CPU recibe. X pasa casi todo el ciclo bloqueada y consume poco; Y aprovecha la CPU mientras X está bloqueada. La carga real solo se conoce midiendo.
 
-\ej{9} \cod{BaseType\_t r=xTaskCreate(tarea,"T",1024,NULL,2,NULL); if(r!=pdPASS) Serial.println("ERROR");} ¿Qué significa ERROR? ¿Siempre faltó memoria? ¿Riesgo de pila pequeña?
-\rta ERROR indica que la tarea no se pudo crear. La falta de memoria es la causa habitual, pero no se puede afirmar sin diagnosticar. Una pila pequeña puede \textbf{desbordarse} después, aunque la creación haya sido exitosa. En ESP-IDF la pila se da en bytes; en FreeRTOS estándar, en palabras.
+\ej{9}
+\codl{BaseType\_t r = xTaskCreate(tarea, "T", 1024, NULL, 2, NULL);}
+\codl{if (r != pdPASS) Serial.println("ERROR");}
+\preg ¿Qué significa ERROR? ¿Es correcto concluir que siempre faltó memoria? ¿Qué otro riesgo presenta una pila pequeña?
+\rta
+\itm{a)} Que \cod{xTaskCreate} no pudo crear la tarea.
+\itm{b)} No siempre. La falta de memoria es la causa habitual, pero hay que diagnosticarlo antes de afirmarlo.
+\itm{c)} Desbordamiento de pila durante la ejecución, aunque la creación haya sido exitosa. Ojo: en ESP-IDF la pila va en bytes; en FreeRTOS estándar, en palabras.
 
-\ej{10} \cod{\#define CONFIG\_TICK\_RATE\_HZ 100} y \cod{vTaskDelay(pdMS\_TO\_TICKS(15));} ¿Cuántos ticks da? ¿Espera exactamente 15 ms?
-\rta Tick = 10 ms. $15\cdot100/1000=1.5\to$ \textbf{1 tick} (división entera). No garantiza 15 ms: la espera real depende de la fase del tick (entre 0 y 10 ms aprox.). Para asegurar un mínimo hay que considerar la resolución y el redondeo.
+\ej{10}
+\codl{\#define CONFIG\_TICK\_RATE\_HZ 100}
+\codl{vTaskDelay(pdMS\_TO\_TICKS(15));}
+\preg Con tick de 10 ms, ¿cuántos ticks produce típicamente pdMS\_TO\_TICKS(15)? ¿Se garantiza una espera exacta de 15 ms?
+\rta
+\itm{a)} $15 \cdot 100 / 1000 = 1.5 \to$ \textbf{1 tick} (división entera).
+\itm{b)} No. 1 tick = 10 ms y la espera real depende de en qué punto del tick se llama (fase). Para garantizar un mínimo hay que considerar la resolución y el redondeo.
 
-\ej{11} \cod{monitor(): for(;;)\{ Serial.println("OK"); vTaskDelay(pdMS\_TO\_TICKS(100)); \}}. Se miden intervalos de 101, 107, 99 y 112 ms. Tres causas y una mejor medición.
-\rta Causas: (1) tiempo de \cod{Serial.println} y su buffer, (2) interferencia de tareas de mayor prioridad, (3) variación del planificador/tick y carga del sistema. Mejor medición: tomar marcas con \cod{esp\_timer\_get\_time()} y calcular diferencias, separar la medición del envío serie, repetir muestras y reportar mínimo, máximo y promedio. Esto no prueba que FreeRTOS falló.
+\ej{11}
+\codl{void monitor(void *p) \{ for (;;) \{ Serial.println("OK"); vTaskDelay(pdMS\_TO\_TICKS(100)); \} \}}
+\preg El monitor serie registra intervalos de 101, 107, 99 y 112 ms. Dé tres causas plausibles y diseñe una medición mejor.
+\rta
+\itm{a)} Causas: (1) tiempo de \cod{Serial.println} y su buffer; (2) interferencia de tareas de mayor prioridad; (3) variación del planificador/tick y carga del sistema.
+\itm{b)} Medición: tomar marcas con \cod{esp\_timer\_get\_time()} y calcular diferencias, separar la medición del envío por serie, repetir muchas muestras y reportar mínimo, máximo y promedio. Estos datos no prueban que FreeRTOS falló.
 
-\ej{12} RX (prio 4) recibe tramas cada 10 ms; PROCESA (prio 3) tarda 6 ms por trama; LOG (prio 1) tarda 3 ms por registro. Proponga estados y prioridades, ¿qué pasa si RX sondea sin bloquearse? ¿Qué medir?
-\rta Las prioridades son razonables (RX es la más sensible al tiempo). Cada tarea debe estar \textbf{bloqueada} esperando: RX por recepción/evento, PROCESA por mensajes y LOG por registros. Si RX sondea continuamente con prio 4, acapara la CPU y PROCESA y LOG no ejecutan: se acumulan datos y se pierden tramas. La prioridad no reemplaza un diseño con bloqueo. Medir: tasa de recepción, latencia RX$\to$procesamiento, ocupación y desbordamiento de buffers, uso de CPU y variación temporal bajo carga.
+\ej{12}
+\codl{Tarea RX (prioridad 4): recibe tramas cada 10 ms.}
+\codl{Tarea PROCESA (prioridad 3): tarda 6 ms por trama.}
+\codl{Tarea LOG (prioridad 1): registra resultados; tarda 3 ms por registro.}
+\preg Proponga estados y prioridades razonables. ¿Qué pasaría si RX sondea permanentemente sin bloquearse? ¿Qué mediciones usaría para validar el diseño?
+\rta
+\itm{a)} Prioridades RX $>$ PROCESA $>$ LOG son razonables (RX es la más sensible al tiempo). Cada tarea debe quedar \textbf{Blocked} mientras espera: RX por recepción/evento, PROCESA por mensajes y LOG por registros.
+\itm{b)} RX con prioridad 4 acapara la CPU; PROCESA y LOG no ejecutan, se acumulan datos y se pierden tramas. La prioridad no reemplaza un diseño con bloqueo.
+\itm{c)} Medir: tasa de recepción, latencia RX$\to$procesamiento, ocupación y desbordamiento de buffers, uso de CPU y variación temporal bajo carga.
 
 \end{multicols}
 \end{document}
