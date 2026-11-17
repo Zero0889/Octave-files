@@ -1,0 +1,143 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[american]{circuitikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.16}
+\usetikzlibrary{babel}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{center}
+{\Large\bfseries Amplificadores operacionales -- Problemas 7, 10 y 17}
+\end{center}
+
+%=====================================================
+\section*{Problema 7 (Fig.\ 10.67)}
+
+\begin{center}
+\begin{circuitikz}[scale=0.9, transform shape]
+  \draw (0,0) node[op amp, noinv input up] (A) {};
+  \draw (A.+) -- ++(-1.5,0) node[left] {$V_1=0.5\,$V};
+  \draw (A.out) -- ++(1,0) coordinate (o) node[right] {$V_o$};
+  \draw (A.-) -| ++(-0.5,-1.2) coordinate (n);
+  \draw (n) to[R, l={$R_f=200\,\mathrm{k}\Omega$}] (n -| o) -- (o);
+  \draw (n) to[R, l_={$10\,\mathrm{k}\Omega$}] ++(0,-2)
+            to[pR, n=pot, l_={$0\text{--}10\,\mathrm{k}\Omega$}] ++(0,-2) node[ground] {};
+\end{circuitikz}
+\end{center}
+
+Configuración \textbf{no inversora}. El potenciómetro está conectado como reóstato,
+de modo que la resistencia hacia tierra es
+\[
+R_1 = 10\,\mathrm{k}\Omega + R_{pot},\qquad 0 \le R_{pot}\le 10\,\mathrm{k}\Omega
+\;\Rightarrow\; 10\,\mathrm{k}\Omega \le R_1 \le 20\,\mathrm{k}\Omega
+\]
+\[
+V_o = \left(1+\frac{R_f}{R_1}\right)V_1
+\]
+
+\textbf{$R_1 = 10\,\mathrm{k}\Omega$ (pot.\ en 0):}
+\[
+V_o = \left(1+\frac{200\,\mathrm{k}\Omega}{10\,\mathrm{k}\Omega}\right)(0.5\,\mathrm{V}) = 21(0.5) = 10.5\ \mathrm{V}
+\]
+
+\textbf{$R_1 = 20\,\mathrm{k}\Omega$ (pot.\ al máximo):}
+\[
+V_o = \left(1+\frac{200\,\mathrm{k}\Omega}{20\,\mathrm{k}\Omega}\right)(0.5\,\mathrm{V}) = 11(0.5) = 5.5\ \mathrm{V}
+\]
+
+\[
+\boxed{5.5\ \mathrm{V} \le V_o \le 10.5\ \mathrm{V}}
+\]
+
+%=====================================================
+\section*{Problema 10 (Fig.\ 10.69)}
+
+\begin{center}
+\begin{circuitikz}[scale=0.9, transform shape]
+  \draw (0,0) node[op amp] (A) {};
+  \draw (A.-) -- ++(-0.5,0) coordinate (n)
+        to[R, l_={$200\,\mathrm{k}\Omega$}] ++(-2.5,0)
+        to[nos, l_={$t=0$}] ++(-1.8,0) node[left] {$V_1=+1.5\,$V};
+  \draw (A.+) -- ++(-0.5,0) node[ground] {};
+  \draw (A.out) -- ++(1,0) coordinate (o) node[right] {$V_o$};
+  \draw (n) -- ++(0,1.5) coordinate (c1) to[C, l={$0.1\,\mu\mathrm{F}$}] (c1 -| o) -- (o);
+\end{circuitikz}
+\end{center}
+
+Es un \textbf{integrador}:
+\[
+V_o(t) = -\frac{1}{RC}\int_0^t V_1\,dt
+\]
+\[
+RC = (200\times10^{3}\,\Omega)(0.1\times10^{-6}\,\mathrm{F}) = 0.02\ \mathrm{s}
+\]
+Con $V_1 = 1.5$ V constante (al cerrar el interruptor en $t=0$):
+\[
+V_o(t) = -\frac{1.5}{0.02}\,t = \boxed{-75\,t\ \ \mathrm{V}}
+\qquad(\text{rampa de pendiente } -75\ \mathrm{V/s} = -75\ \mathrm{mV/ms})
+\]
+
+Valores: $t=20$ ms $\Rightarrow V_o=-1.5$ V;\; $t=100$ ms $\Rightarrow V_o=-7.5$ V.
+La rampa continúa hasta que la salida se satura en $-V_{sat}$
+(p.\ ej.\ $\approx -10$ V con fuente de $\pm 12$ V, a los $t = 10/75 \approx 133$ ms).
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm, height=6cm,
+  axis lines=middle,
+  xlabel={$t$ (ms)}, ylabel={$V_o$ (V)},
+  xlabel style={at={(ticklabel* cs:1)}, anchor=north west},
+  ylabel style={at={(ticklabel* cs:1)}, anchor=south},
+  xmin=-10, xmax=200, ymin=-12, ymax=2,
+  xtick={0,20,40,60,80,100,133,160,180},
+  ytick={-10,-7.5,-6,-4.5,-3,-1.5,0},
+  grid=major, grid style={gray!25},
+  tick label style={font=\footnotesize}
+]
+\addplot[very thick, blue, domain=0:133.33, samples=2] {-0.075*x};
+\addplot[very thick, blue, dashed, domain=133.33:200, samples=2] {-10};
+\node[blue, anchor=south west, font=\footnotesize] at (axis cs:60,-4.5) {$V_o=-75t$};
+\node[anchor=south, font=\footnotesize] at (axis cs:170,-10) {$-V_{sat}$};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+%=====================================================
+\section*{Problema 17 (Fig.\ 10.75)}
+
+\begin{center}
+\begin{circuitikz}[scale=0.9, transform shape]
+  \draw (0,0) node[op amp] (A) {};
+  \draw (A.-) -- ++(-0.5,0) coordinate (n)
+        to[R, l_={$2\,\mathrm{k}\Omega$}] ++(-2.5,0) node[left] {$V_i$};
+  \draw (A.+) -- ++(-0.5,0) to[R, l_={$2\,\mathrm{k}\Omega$}] ++(0,-2) node[ground] {};
+  \draw (A.out) -- ++(1,0) coordinate (o) node[right] {$V_o$};
+  \draw (n) -- ++(0,1.5) coordinate (c1) to[R, l={$200\,\mathrm{k}\Omega$}] (c1 -| o) -- (o);
+\end{circuitikz}
+\end{center}
+
+Datos: $I_{IO}=4$ nA,\; $I_{IB}=20$ nA.
+
+\[
+I_{IB} = \frac{I_{IB}^+ + I_{IB}^-}{2},\qquad I_{IO} = \left|I_{IB}^+ - I_{IB}^-\right|
+\]
+Resolviendo el sistema:
+\[
+I_{IB}^+ = I_{IB} + \frac{I_{IO}}{2} = 20\ \mathrm{nA} + \frac{4\ \mathrm{nA}}{2} = \boxed{22\ \mathrm{nA}}
+\]
+\[
+I_{IB}^- = I_{IB} - \frac{I_{IO}}{2} = 20\ \mathrm{nA} - \frac{4\ \mathrm{nA}}{2} = \boxed{18\ \mathrm{nA}}
+\]
+Comprobación: $\frac{22+18}{2}=20$ nA y $22-18=4$ nA. \checkmark
+
+(Las corrientes no dependen de las resistencias del circuito; dependen solo de los
+valores especificados del amplificador operacional.)
+
+\end{document}
