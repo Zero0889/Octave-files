@@ -45,9 +45,9 @@
 \end{circuitikz}
 \end{center}
 
-\textbf{Fórmula (Boylestad, amp.\ de instrumentación):}
+\textbf{Fórmula (Boylestad, Ec.~11.12, igual que el Ejemplo 11.11):}
 \[
-|V_o| = \left(1+\frac{2R}{R_P}\right)(V_1-V_2)
+V_o = \left(1+\frac{2R}{R_P}\right)(V_1-V_2) = k(V_1-V_2)
 \]
 
 \textbf{Solución:}
@@ -65,10 +65,11 @@ V_{o2} &= V_2 - I R = 1 - 10 = -9\ \mathrm{V}\\
 V_o &= \frac{R_f}{R_1}\,(V_{o2}-V_{o1}) = 1\cdot(-9-13) = -22\ \mathrm{V}
 \end{align*}
 
-Como $V_{o1}$ entra por la entrada inversora de A3 (tal como está dibujada la figura), el signo es negativo:
+\textbf{Respuesta (método del libro, Ec.~11.12):}
 \[
-\boxed{V_o = -22\ \mathrm{V}\quad(|V_o| = 22\ \mathrm{V})}
+\boxed{V_o = 11(3-1) = 22\ \mathrm{V}}
 \]
+\textit{Nota:} en la Fig.~11.28 del libro la entrada de arriba es $V_2$; en la Fig.~11.56 la de arriba es $V_1$. Por eso, el análisis nodo a nodo de este dibujo da $-22$~V. La magnitud es la misma: 22~V.
 
 %==================================================
 \newpage
@@ -98,9 +99,9 @@ Como $V_{o1}$ entra por la entrada inversora de A3 (tal como está dibujada la f
 \end{circuitikz}
 \end{center}
 
-\textbf{Fórmula (Boylestad, filtro RC de primer orden):}
+\textbf{Fórmulas (Boylestad, Ejemplo 11.14, filtro pasobanda):}
 \[
-f = \frac{1}{2\pi R C}
+f_{OL} = \frac{1}{2\pi R_1 C_1}\qquad f_{OH} = \frac{1}{2\pi R_2 C_2}
 \]
 
 \textbf{Frecuencia de corte baja} (etapa pasaaltas: $R_1=10\,\mathrm{k\Omega}$, $C_1=0.05\,\mu\mathrm{F}$):
