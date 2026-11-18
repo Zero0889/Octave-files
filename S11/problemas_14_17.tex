@@ -5,7 +5,7 @@
 \usepackage{amsmath}
 
 \usepackage[american]{circuitikz}
-\usetikzlibrary{calc}
+\usetikzlibrary{calc,babel}
 
 \setlength{\parindent}{0pt}
 
@@ -28,9 +28,14 @@
  % Cadena resistiva
  \draw (A1.out) -- (2.5,4) coordinate(a);
  \draw (A2.out) -- (2.5,0) coordinate(b);
- \draw (a) to[R, l={$R=5\,\mathrm{k\Omega}$}, *-] (2.5,2.7) coordinate(c)
-           to[vR, l={$R_P=1\,\mathrm{k\Omega}$}] (2.5,1.3) coordinate(d)
-           to[R, l={$R=5\,\mathrm{k\Omega}$}, -*] (b);
+ \draw (a) to[R, l={$5\,\mathrm{k\Omega}$}, *-] (2.5,2.7) coordinate(c)
+           to[vR, l={$R_P$}] (2.5,1.3) coordinate(d)
+           to[R, l={$5\,\mathrm{k\Omega}$}, -*] (b);
+ \node[above, red] at (1.9,4) {$V_{o1}=13\,$V};
+ \node[below, red] at (1.9,0) {$V_{o2}=-9\,$V};
+ \node[above left, red, font=\small] at (2.5,2.7) {$V_1=3\,$V};
+ \node[below left, red, font=\small] at (2.5,1.3) {$V_2=1\,$V};
+ \draw[->, red, very thick] (3.6,3.4) -- (3.6,0.6) node[midway, right, align=left]{$I=2\,$mA};
  % Realimentación A1: inv -> c
  \draw (A1.-) -- ++(-0.4,0) |- (c);
  \draw (A2.-) -- ++(-0.4,0) |- (d);
@@ -57,7 +62,7 @@ k = 1+\frac{2(5\,\mathrm{k\Omega})}{1\,\mathrm{k\Omega}} = 11
 |V_o| = 11\,(3\,\mathrm{V}-1\,\mathrm{V}) = 22\ \mathrm{V}
 \]
 
-\textbf{Verificación nodo a nodo:}
+\textbf{Verificación nodo a nodo:} por el cortocircuito virtual, el extremo superior de $R_P$ está a $V_1=3$~V y el inferior a $V_2=1$~V. La corriente $I$ no entra a los op-amps, así que pasa igual por $R$, $R_P$ y $R$ (ver figura).
 \begin{align*}
 I &= \frac{V_1-V_2}{R_P} = \frac{3-1}{1\,\mathrm{k\Omega}} = 2\ \mathrm{mA}\\
 V_{o1} &= V_1 + I R = 3 + (2\,\mathrm{mA})(5\,\mathrm{k\Omega}) = 13\ \mathrm{V}\\
