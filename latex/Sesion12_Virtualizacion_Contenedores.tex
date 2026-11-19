@@ -1,0 +1,1069 @@
+%=======================================================================
+%  Sesión 12 — Virtualización y contenedores en Linux
+%  Sistemas Operativos Aplicados a las Telecomunicaciones · UNMSM
+%  Compilar con: pdflatex (dos pasadas)
+%=======================================================================
+\documentclass[11pt,a4paper]{article}
+
+%------------------------- Idioma y codificación -----------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting,es-tabla]{babel}
+
+%------------------------- Tipografía Times ----------------------------
+\usepackage{newtxtext}      % Times New Roman (texto)
+\usepackage{newtxmath}      % Times (matemáticas)
+\usepackage[scaled=0.82]{beramono} % monoespaciada legible para comandos
+
+%------------------------- Geometría y espaciado -----------------------
+\usepackage[a4paper,top=2.4cm,bottom=2.4cm,left=2.6cm,right=2.6cm]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.08}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=3pt,parsep=0pt}
+
+%------------------------- Color, cajas, gráficos ----------------------
+\usepackage{xcolor}
+\definecolor{azulprof}{HTML}{14354B}
+\definecolor{azulmedio}{HTML}{2E6E8E}
+\definecolor{tealx}{HTML}{1A8F86}
+\definecolor{vinox}{HTML}{B33A52}
+\definecolor{ambarx}{HTML}{C8891B}
+\definecolor{grisfondo}{HTML}{F2F5F8}
+\definecolor{azulsuave}{HTML}{E6EFF7}
+\definecolor{verdesuave}{HTML}{E2F2EE}
+\definecolor{ambarsuave}{HTML}{FDF3DF}
+\definecolor{rosasuave}{HTML}{FBE8EC}
+\definecolor{grislinea}{HTML}{C9D3DC}
+
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{textcomp}
+
+%------------------------- Títulos -------------------------------------
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\large\bfseries\color{azulprof}}{\thesection.}{0.6em}{}
+  [\vspace{2pt}{\color{grislinea}\titlerule[0.9pt]}]
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries\color{azulmedio}}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.6em}{0.7em}
+\titlespacing*{\subsection}{0pt}{1.1em}{0.4em}
+
+%------------------------- Encabezado y pie ----------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\footnotesize\color{azulmedio}Sesión 12 · Virtualización y contenedores en Linux}
+\fancyfoot[C]{\footnotesize\color{azulmedio}\thepage}
+
+%------------------------- Enlaces -------------------------------------
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\urlstyle{sf}
+
+%------------------------- Cajas reutilizables -------------------------
+\newtcolorbox{clave}[1][]{
+  enhanced, breakable, colback=azulsuave, colframe=azulmedio,
+  boxrule=0pt, leftrule=3pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  fontupper=\normalsize, #1}
+
+\newtcolorbox{aviso}[1][]{
+  enhanced, breakable, colback=ambarsuave, colframe=ambarx,
+  boxrule=0pt, leftrule=3pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, #1}
+
+\newtcolorbox{errorbox}[1][]{
+  enhanced, breakable, colback=rosasuave, colframe=vinox,
+  boxrule=0pt, leftrule=3pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, #1}
+
+\newtcolorbox{defbox}[1][]{
+  enhanced, breakable, colback=verdesuave, colframe=tealx,
+  boxrule=0pt, leftrule=3pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, #1}
+
+\tcbuselibrary{listings}
+\newtcblisting{codigo}[1][]{
+  listing only, colback=azulprof, colframe=azulprof,
+  arc=3pt, left=10pt, right=10pt, top=8pt, bottom=8pt, boxrule=0pt,
+  listing options={basicstyle=\ttfamily\small\color{white},
+    columns=flexible, keepspaces=true, breaklines=true,
+    showstringspaces=false, literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1
+      {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {µ}{{u}}1},
+  #1}
+
+% Etiqueta de bloque
+\newcommand{\bloque}[2]{%
+  \vspace{1.2em}
+  \begin{tcolorbox}[enhanced, colback=azulprof, colframe=azulprof, arc=3pt,
+      left=12pt,right=12pt,top=9pt,bottom=9pt]
+    {\color{white!75!azulmedio}\footnotesize\bfseries\MakeUppercase{#1}}\\[2pt]
+    {\color{white}\large\bfseries #2}
+  \end{tcolorbox}
+  \vspace{0.2em}}
+
+% Término destacado en línea
+\newcommand{\cmd}[1]{\texttt{#1}}
+
+%------------------------- Estilos TikZ --------------------------------
+\tikzset{
+  caja/.style   = {rectangle, rounded corners=3pt, draw=grislinea, fill=grisfondo,
+                   align=center, inner sep=6pt, font=\small, minimum height=9mm},
+  cazul/.style  = {caja, fill=azulsuave, draw=azulmedio!40},
+  cverde/.style = {caja, fill=verdesuave, draw=tealx!50},
+  cambar/.style = {caja, fill=ambarsuave, draw=ambarx!50},
+  crosa/.style  = {caja, fill=rosasuave, draw=vinox!40},
+  cosc/.style   = {caja, fill=azulprof, draw=azulprof, text=white},
+  fl/.style     = {-{Stealth[length=2.6mm]}, draw=vinox, line width=0.8pt},
+  flt/.style    = {-{Stealth[length=2.6mm]}, draw=tealx, line width=0.8pt},
+  etq/.style    = {font=\scriptsize\itshape, text=azulmedio}
+}
+
+\begin{document}
+
+%=======================================================================
+\begin{center}
+  {\color{tealx}\bfseries\footnotesize SESIÓN 12}\\[4pt]
+  {\color{azulprof}\LARGE\bfseries Virtualización y contenedores en Linux}\\[6pt]
+  {\color{azulmedio}\small Máquinas virtuales · hipervisores · namespaces · cgroups · redes y persistencia}\\[3pt]
+  {\color{azulmedio}\footnotesize Sistemas Operativos Aplicados a las Telecomunicaciones · UNMSM}
+\end{center}
+\vspace{0.4em}
+{\color{grislinea}\hrule height 1pt}
+\vspace{1.2em}
+
+%=======================================================================
+\section{Punto de partida}
+
+\subsection*{Continuidad del curso: del proceso al aislamiento}
+
+Esta sesión se apoya en lo ya estudiado y no introduce un tema desconectado:
+
+\begin{center}
+\begin{tikzpicture}[node distance=5mm]
+  \node[cazul, text width=2.9cm] (a) {\textbf{S3--S4}\\[2pt]Sistema de archivos, procesos y CPU};
+  \node[cazul, text width=2.9cm, right=of a] (b) {\textbf{S5--S6}\\[2pt]IPC, memoria, buffers y E/S};
+  \node[cverde, text width=2.9cm, right=of b] (c) {\textbf{S7}\\[2pt]Sockets, TCP/UDP y servicios};
+  \node[crosa, text width=2.9cm, right=of c] (d) {\textbf{S12}\\[2pt]VM, aislamiento y contenedores};
+  \draw[fl] (a)--(b); \draw[fl] (b)--(c); \draw[fl] (c)--(d);
+\end{tikzpicture}
+\end{center}
+
+\begin{clave}
+\textbf{Pregunta que organiza la sesión:} ¿cómo puede el sistema operativo presentar
+recursos y entornos separados a procesos diferentes?
+\end{clave}
+
+\subsection*{Resultados de aprendizaje}
+
+Al finalizar, el estudiante podrá justificar y diagnosticar, no solo repetir definiciones:
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+  \item \textbf{Interpretar} la arquitectura de un hipervisor y de una máquina virtual.
+  \item \textbf{Diferenciar} kernel anfitrión, sistema invitado y proceso de contenedor.
+  \item \textbf{Explicar} namespaces, cgroups, almacenamiento y redes virtuales.
+  \item \textbf{Diagnosticar} evidencia básica de Linux y decidir entre VM y contenedor.
+\end{enumerate}
+
+\subsection*{Problema inicial: un servidor debe alojar varios servicios}
+
+Un único servidor físico debe sostener tres servicios con dependencias distintas:
+un \textbf{servidor web} (puerto 80), una \textbf{base de datos} (datos persistentes)
+y un servicio de \textbf{señalización} (bibliotecas y versiones propias).
+
+\begin{clave}
+El problema no es solo ejecutar tres programas: también hay que \textbf{controlar fallas,
+recursos y dependencias} sobre un mismo conjunto de hardware.
+\end{clave}
+
+\subsection*{Qué controla realmente Linux}
+
+Antes de virtualizar conviene fijar la arquitectura base. Una misma máquina dispone de
+hardware físico y de un kernel que \emph{arbitra} el acceso a ese hardware.
+
+\begin{center}
+\begin{tikzpicture}[node distance=6mm]
+  \node[cazul, text width=11.5cm] (app) {\textbf{Aplicaciones y procesos:} web · monitor · base de datos};
+  \node[cverde, text width=11.5cm, below=of app] (k)
+    {\textbf{Kernel Linux} \;\textemdash\; planifica CPU · gestiona memoria · controla E/S · aplica permisos};
+  \node[caja, below left=12mm and 3.6cm of k.south] (cpu) {CPU};
+  \node[caja, right=5mm of cpu] (ram) {RAM};
+  \node[caja, right=5mm of ram] (dsk) {Disco};
+  \node[caja, right=5mm of dsk] (net) {Red};
+  \draw[fl] (app)--(k);
+  \draw[fl] (k.south) -- ++(0,-4mm) -| (cpu);
+  \draw[fl] (k.south) -- ++(0,-4mm) -| (ram);
+  \draw[fl] (k.south) -- ++(0,-4mm) -| (dsk);
+  \draw[fl] (k.south) -- ++(0,-4mm) -| (net);
+\end{tikzpicture}
+\end{center}
+
+\begin{clave}
+La virtualización y los contenedores \textbf{no inventan recursos}: reorganizan la manera
+en que el kernel —o un sistema invitado— presenta y usa CPU, memoria, disco y red.
+\end{clave}
+
+%=======================================================================
+\bloque{Bloque 1 · Máquinas virtuales}{Del hardware real a las máquinas virtuales}
+
+\section{Qué significa virtualizar una máquina}
+
+Virtualizar es \textbf{presentar a un sistema invitado una plataforma de hardware virtual}:
+CPU, memoria, disco y tarjeta de red que el invitado percibe como propios, aunque sus
+recursos provienen del equipo físico.
+
+\begin{center}
+\begin{tikzpicture}[node distance=9mm]
+  \node[caja, text width=2.6cm] (hw) {\textbf{Hardware físico}\\[2pt]\scriptsize CPU · RAM · NIC};
+  \node[cosc, right=16mm of hw, text width=2.4cm] (hv) {\textbf{Hipervisor}};
+  \node[cazul, above right=4mm and 16mm of hv, text width=3.2cm] (vm1) {\textbf{VM 1} · Linux};
+  \node[cazul, below right=4mm and 16mm of hv, text width=3.2cm] (vm2) {\textbf{VM 2} · otro SO};
+  \draw[fl] (hw)--(hv);
+  \draw[flt] (hv)--(vm1);
+  \draw[flt] (hv)--(vm2);
+\end{tikzpicture}
+\end{center}
+
+\begin{defbox}
+\textbf{SO invitado (\emph{guest}):} sistema operativo que se ejecuta \emph{dentro} de la
+máquina virtual, con su propio kernel, sus servicios y sus procesos.\\
+\textbf{SO anfitrión (\emph{host}):} sistema que posee el hardware real y sostiene al hipervisor.
+\end{defbox}
+
+\begin{clave}
+Las CPU, la RAM y la NIC de una VM son \textbf{abstracciones}; sus recursos proceden del
+equipo físico y están sujetos a la planificación del anfitrión.
+\end{clave}
+
+\subsection{Hipervisores de tipo 1 y tipo 2}
+
+La clasificación describe \textbf{dónde se sitúa la capa de virtualización} respecto del hardware.
+
+\begin{center}
+\begin{tikzpicture}[node distance=3mm]
+  % Tipo 1
+  \node[font=\bfseries\small, text=vinox] (t1) {TIPO 1 · nativo o \emph{bare metal}};
+  \node[cazul, below=5mm of t1, text width=5.4cm] (a1) {VM A \quad + \quad VM B};
+  \node[crosa, below=of a1, text width=5.4cm] (a2) {Hipervisor / capa de virtualización};
+  \node[caja,  below=of a2, text width=5.4cm] (a3) {Hardware físico};
+  % Tipo 2
+  \node[font=\bfseries\small, text=tealx, right=22mm of t1] (t2) {TIPO 2 · alojado};
+  \node[cazul,  below=5mm of t2, text width=5.4cm] (b1) {VM A \quad + \quad VM B};
+  \node[crosa,  below=of b1, text width=5.4cm] (b2) {Hipervisor alojado};
+  \node[cverde, below=of b2, text width=5.4cm] (b3) {SO anfitrión};
+  \node[caja,   below=of b3, text width=5.4cm] (b4) {Hardware físico};
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+  \item \textbf{Tipo 1:} la capa de virtualización se ejecuta directamente sobre el hardware.
+        Es el modelo típico de servidores e infraestructura de producción.
+  \item \textbf{Tipo 2:} el hipervisor se ejecuta como aplicación sobre un sistema operativo
+        anfitrión ya instalado. Es el modelo habitual de escritorio y laboratorio.
+\end{itemize}
+
+\begin{aviso}
+\textbf{Precisión importante:} KVM en Linux no encaja en una \textquotedblleft caja\textquotedblright{} única.
+Requiere explicar la colaboración entre el \textbf{kernel anfitrión} (que aporta las funciones
+de virtualización), \textbf{QEMU} (que provee la máquina y sus dispositivos) y la
+\textbf{aceleración por hardware} del procesador.
+\end{aviso}
+
+\subsection{Una máquina virtual tiene su propio kernel}
+
+El invitado inicia servicios y procesos como si fuese una computadora independiente.
+Las capas, de arriba hacia abajo, son:
+
+\begin{center}
+\begin{tikzpicture}[node distance=3mm]
+  \node[cazul,  text width=11.5cm] (l1) {\textbf{Aplicación invitada} \hfill \scriptsize ejecución en espacio de usuario};
+  \node[cverde, below=of l1, text width=11.5cm] (l2) {\textbf{SO invitado (kernel)} \hfill \scriptsize planificación, memoria, sistema de archivos};
+  \node[cambar, below=of l2, text width=11.5cm] (l3) {\textbf{CPU / RAM / NIC virtuales} \hfill \scriptsize dispositivos vistos por el invitado};
+  \node[crosa,  below=of l3, text width=11.5cm] (l4) {\textbf{QEMU + KVM} \hfill \scriptsize virtualización, aceleración y dispositivos};
+  \node[caja,   below=of l4, text width=11.5cm] (l5) {\textbf{Host Linux + hardware} \hfill \scriptsize recursos físicos reales};
+  \draw[fl] (l1)--(l2); \draw[fl] (l2)--(l3); \draw[fl] (l3)--(l4); \draw[fl] (l4)--(l5);
+\end{tikzpicture}
+\end{center}
+
+\begin{clave}
+La VM puede \textbf{instalar paquetes y modificar su kernel} sin convertirlo en el kernel
+del host: hay una separación real del sistema operativo invitado.
+\end{clave}
+
+\subsection{Linux: responsabilidades de KVM, QEMU y libvirt}
+
+Son tres piezas \emph{diferentes} de una misma solución de virtualización, y confundirlas
+es uno de los errores más frecuentes.
+
+\begin{center}
+\begin{tikzpicture}[node distance=10mm]
+  \node[cazul, text width=3.4cm] (lv) {\textbf{libvirt}\\[3pt]\scriptsize Gestión: definir, iniciar, detener y administrar máquinas};
+  \node[cverde, right=of lv, text width=3.4cm] (qe) {\textbf{QEMU}\\[3pt]\scriptsize Proceso que proporciona la máquina y los dispositivos};
+  \node[cambar, right=of qe, text width=3.4cm] (kv) {\textbf{KVM}\\[3pt]\scriptsize Funciones del kernel que aceleran la CPU virtual};
+  \draw[fl] (lv)--(qe); \draw[fl] (qe)--(kv);
+\end{tikzpicture}
+\end{center}
+
+\begin{defbox}
+\cmd{/dev/kvm} es la \textbf{interfaz del kernel} utilizada por el software de virtualización
+para solicitar las funciones de aceleración.
+\end{defbox}
+
+\begin{errorbox}
+\textbf{No confundir:} libvirt \textbf{no ejecuta por sí solo} instrucciones del invitado;
+coordina herramientas como QEMU/KVM.
+\end{errorbox}
+
+\subsection{Qué ocurre al iniciar una máquina virtual}
+
+No basta con \textquotedblleft abrir un programa\textquotedblright: el hipervisor prepara recursos y luego
+arranca al invitado.
+
+\begin{center}
+\begin{tikzpicture}[node distance=4.5mm]
+  \node[cazul, text width=2.3cm] (p1) {\textbf{1. Configuración}\\[2pt]\scriptsize vCPU, RAM, disco, red};
+  \node[cverde, right=of p1, text width=2.3cm] (p2) {\textbf{2. Creación}\\[2pt]\scriptsize proceso QEMU y recursos};
+  \node[cazul, right=of p2, text width=2.3cm] (p3) {\textbf{3. Arranque}\\[2pt]\scriptsize firmware y cargador};
+  \node[cverde, right=of p3, text width=2.3cm] (p4) {\textbf{4. Kernel invitado}\\[2pt]\scriptsize inicializa servicios};
+  \node[cazul, right=of p4, text width=2.3cm] (p5) {\textbf{5. Aplicaciones}\\[2pt]\scriptsize procesos del invitado};
+  \draw[fl] (p1)--(p2); \draw[fl] (p2)--(p3); \draw[fl] (p3)--(p4); \draw[fl] (p4)--(p5);
+\end{tikzpicture}
+\end{center}
+
+\begin{aviso}
+El arranque de una VM \textbf{no es instantáneo}: debe iniciar su propio sistema operativo
+invitado. Esta es una diferencia operativa decisiva frente a los contenedores.
+\end{aviso}
+
+\section{Recursos virtualizados}
+
+\subsection{CPU virtual: ¿cuatro vCPU equivalen a cuatro núcleos?}
+
+\textbf{No necesariamente.} El planificador del host asigna tiempo de CPU física a las vCPU,
+igual que lo haría con cualquier otro hilo de ejecución.
+
+\begin{center}
+\begin{tikzpicture}[node distance=7mm]
+  \node[cazul] (v1) {vCPU 1};
+  \node[cazul, right=of v1] (v2) {vCPU 2};
+  \node[cazul, right=of v2] (v3) {vCPU 3};
+  \node[cazul, right=of v3] (v4) {vCPU 4};
+  \node[cverde, below=13mm of $(v2)!0.5!(v3)$, text width=9cm] (sch)
+    {\textbf{Planificador del host Linux + KVM}};
+  \node[caja, below left=13mm and 2.6cm of sch.south] (c1) {CPU};
+  \node[caja, right=10mm of c1] (c2) {CPU};
+  \node[caja, right=10mm of c2] (c3) {CPU};
+  \draw[fl] (v1)--(sch); \draw[fl] (v2)--(sch); \draw[fl] (v3)--(sch); \draw[fl] (v4)--(sch);
+  \draw[flt] (sch.south) -- ++(0,-4mm) -| (c1);
+  \draw[flt] (sch.south) -- ++(0,-4mm) -| (c2);
+  \draw[flt] (sch.south) -- ++(0,-4mm) -| (c3);
+\end{tikzpicture}
+\end{center}
+
+\begin{clave}
+\textbf{vCPU = unidad de ejecución virtual.} No es una reserva exclusiva de núcleo, salvo
+que se configure y se garantice explícitamente (fijación de CPU, reservas, aislamiento).
+\end{clave}
+
+\subsection{Memoria virtualizada: asignar no crea RAM}
+
+El anfitrión debe sostener el uso real de sus invitados \emph{además} de su propio consumo.
+Ejemplo didáctico con un host de 16 GiB de RAM:
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \def\h{0.95}
+  \fill[azulprof] (0,0) rectangle (1.8,\h);
+  \fill[tealx]    (1.8,0) rectangle (6.6,\h);
+  \fill[azulmedio](6.6,0) rectangle (11.4,\h);
+  \fill[ambarx]   (11.4,0) rectangle (13.0,\h);
+  \node[white,font=\scriptsize\bfseries,align=center] at (0.9,\h/2) {Host\\2 GiB};
+  \node[white,font=\small\bfseries,align=center]      at (4.2,\h/2) {VM A · 6 GiB};
+  \node[white,font=\small\bfseries,align=center]      at (9.0,\h/2) {VM B · 6 GiB};
+  \node[white,font=\scriptsize\bfseries,align=center] at (12.2,\h/2){Libre\\2 GiB};
+  \draw[grislinea] (0,0) rectangle (13.0,\h);
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+  \item \textbf{RAM presentada:} configuración nominal del invitado.
+  \item \textbf{RAM efectivamente usada:} depende de las aplicaciones y de la actividad real.
+  \item \textbf{Presión de memoria:} si la suma de usos reales supera lo disponible,
+        puede afectar al host y a las demás VM.
+\end{itemize}
+
+\subsection{Disco virtual: un archivo puede representar un disco}
+
+El invitado ve bloques virtuales; el host guarda esa información en almacenamiento físico,
+normalmente como un \textbf{archivo de imagen} en formato \cmd{qcow2} o \cmd{raw}.
+
+\begin{center}
+\begin{tikzpicture}[node distance=14mm]
+  \node[cosc, text width=2.8cm] (d1) {\textbf{Disco de VM}\\[2pt]\scriptsize bloques vistos por el invitado};
+  \node[cazul, right=of d1, text width=3.4cm] (d2) {\textbf{Imagen de disco}\\[2pt]\cmd{qcow2} / \cmd{raw}};
+  \node[cverde, right=of d2, text width=3.0cm] (d3) {\textbf{Almacenamiento del host}};
+  \draw[fl] (d1)--(d2); \draw[fl] (d2)--(d3);
+\end{tikzpicture}
+\end{center}
+
+\begin{aviso}
+Una \textbf{instantánea} (\emph{snapshot}) $\neq$ copia de seguridad completa.
+Requiere política de respaldo y \textbf{prueba de recuperación}.
+\end{aviso}
+
+\subsection{Red de una VM: NIC virtual, puente y NIC física}
+
+La máquina invitada puede tener una interfaz de red propia sin poseer una tarjeta física.
+
+\begin{center}
+\begin{tikzpicture}[node distance=6mm]
+  \node[cosc, text width=2.0cm] (vm) {\textbf{VM}\\\scriptsize invitado};
+  \node[cverde, right=of vm, text width=1.8cm] (vnic) {\textbf{vNIC}};
+  \node[cazul, right=of vnic, text width=2.6cm] (br) {\textbf{Bridge / vSwitch}};
+  \node[caja, right=of br, text width=2.0cm] (nic) {\textbf{NIC física}};
+  \node[cverde, right=of nic, text width=2.0cm] (ext) {\textbf{Red externa}};
+  \draw[fl] (vm)--(vnic); \draw[fl] (vnic)--(br); \draw[fl] (br)--(nic); \draw[fl] (nic)--(ext);
+\end{tikzpicture}
+\end{center}
+
+En otra configuración, la salida puede usar \textbf{NAT} en lugar de una unión de puente directa.
+
+\begin{defbox}
+\textbf{NIC} = interfaz de red física. \textbf{vNIC} = interfaz presentada por el hipervisor.
+Crear una vNIC \textbf{no añade} una tarjeta física al servidor.
+\end{defbox}
+
+\subsection{Caso de telecomunicaciones: servicios en tres VM}
+
+Separación operativa de roles sobre un mismo servidor físico:
+
+\begin{center}
+\begin{tikzpicture}[node distance=8mm]
+  \node[cazul,  text width=3.4cm] (g) {\textbf{VM de gestión}\\[2pt]\scriptsize monitoreo y alertas};
+  \node[cverde, right=of g, text width=3.4cm] (s) {\textbf{VM de señalización}\\[2pt]\scriptsize servicios de control};
+  \node[cambar, right=of s, text width=3.4cm] (d) {\textbf{VM de datos}\\[2pt]\scriptsize persistencia y reportes};
+  \node[cosc, below=12mm of s, text width=11.5cm] (base)
+    {\textbf{Capa de virtualización + Linux anfitrión + hardware físico}};
+  \draw[fl] (g)--(base); \draw[fl] (s)--(base); \draw[fl] (d)--(base);
+\end{tikzpicture}
+\end{center}
+
+\begin{errorbox}
+Separar funciones en VM facilita administrar sus entornos, pero \textbf{no garantiza por sí
+solo alta disponibilidad}: si el servidor físico falla, caen las tres máquinas.
+\end{errorbox}
+
+\subsection{Qué resuelve y qué no resuelve una VM}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{\color{tealx}A favor} & \textbf{\color{vinox}Precauciones} \\
+\midrule
+SO invitado propio, independiente del host & Arranque completo del invitado (tiempo y recursos) \\
+Dependencias y bibliotecas separadas & Memoria y servicios duplicados en cada VM \\
+Políticas de seguridad y respaldo por VM & Infraestructura física compartida: un fallo afecta a todas \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{clave}
+Una VM \textbf{no crea recursos}: redistribuye y protege recursos existentes mediante
+mecanismos del hipervisor y del host.
+\end{clave}
+
+%=======================================================================
+\bloque{Bloque 2 · Contenedores}{Aislamiento de procesos dentro de un kernel Linux}
+
+\section{Un contenedor Linux no arranca otro kernel}
+
+Un contenedor ejecuta \textbf{procesos aislados} usando los servicios del \emph{mismo}
+kernel anfitrión. Esta es la diferencia esencial con una máquina virtual.
+
+\begin{center}
+\begin{tikzpicture}[node distance=3mm]
+  \node[font=\bfseries\small, text=azulprof] (h1) {MÁQUINAS VIRTUALES};
+  \node[cazul, below=5mm of h1, text width=5.6cm] (m1) {Aplicaciones de VM A / VM B};
+  \node[cverde, below=of m1, text width=5.6cm] (m2) {\textbf{Kernel invitado A / Kernel invitado B}};
+  \node[crosa, below=of m2, text width=5.6cm] (m3) {Hipervisor + host};
+  \node[caja,  below=of m3, text width=5.6cm] (m4) {Hardware};
+
+  \node[font=\bfseries\small, text=azulprof, right=20mm of h1] (h2) {CONTENEDORES LINUX};
+  \node[cazul, below=5mm of h2, text width=5.6cm] (n1) {Procesos C1 / Procesos C2};
+  \node[crosa, below=of n1, text width=5.6cm] (n2) {Namespaces + cgroups};
+  \node[cverde, below=of n2, text width=5.6cm] (n3) {\textbf{ÚNICO kernel Linux del host}};
+  \node[caja,  below=of n3, text width=5.6cm] (n4) {Hardware};
+\end{tikzpicture}
+\end{center}
+
+\begin{clave}
+En una VM hay un sistema operativo invitado; en un contenedor Linux habitual
+\textbf{no hay kernel invitado}.
+\end{clave}
+
+\subsection{Qué significa \textquotedblleft contener\textquotedblright{} un proceso}
+
+Contener significa dos cosas simultáneas: \textbf{aislar su vista} del sistema y
+\textbf{controlar los recursos} que puede consumir.
+
+\begin{center}
+\begin{tikzpicture}[node distance=13mm]
+  \node[cosc, text width=2.4cm] (p) {\textbf{Proceso Linux}};
+  \node[cverde, right=of p, text width=3.6cm] (ns) {\textbf{namespaces}\\[2pt]\emph{¿qué puede ver?}};
+  \node[cambar, right=of ns, text width=3.6cm] (cg) {\textbf{cgroups}\\[2pt]\emph{¿cuánto puede usar?}};
+  \draw[fl] (p)--(ns); \draw[fl] (ns)--(cg);
+\end{tikzpicture}
+\end{center}
+
+\begin{errorbox}
+Juntos permiten construir un entorno de ejecución separado, pero \textbf{NO equivalen a una
+VM completa}: el kernel sigue siendo uno solo y es compartido.
+\end{errorbox}
+
+\section{Namespaces: distintas vistas sobre el mismo host}
+
+Cada tipo de namespace aísla una \textbf{clase concreta} de recursos.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}l >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{\normalfont\color{azulprof} Namespace} & \textbf{\color{azulprof} Qué aísla} \\
+\midrule
+PID   & Identificadores y jerarquía de procesos \\
+NET   & Interfaces, rutas, puertos y pila de red \\
+MNT   & Puntos de montaje del sistema de archivos \\
+UTS   & Nombre de equipo (\emph{hostname}) \\
+USER  & Identidades y mapeo UID/GID \\
+IPC   & Objetos de comunicación entre procesos \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{clave}
+Un namespace \textbf{no entrega más RAM ni más CPU}: solo separa la \emph{vista} de un
+recurso determinado. La cantidad disponible la gobiernan los cgroups.
+\end{clave}
+
+\subsection{Namespace PID: un proceso puede tener IDs distintos según la vista}
+
+Dentro de un contenedor un proceso puede aparecer como \textbf{PID 1} sin ser el PID 1 del host.
+
+\begin{center}
+\begin{tikzpicture}[node distance=3mm]
+  \node[font=\bfseries\small, text=azulprof] (t1) {VISTA DEL HOST};
+  \node[caja, below=5mm of t1, text width=5.4cm, align=left] (h1) {\textbf{PID 1}\hfill init/systemd};
+  \node[caja, below=of h1, text width=5.4cm, align=left] (h2) {\textbf{PID 3482}\hfill proceso de aplicación};
+  \node[caja, below=of h2, text width=5.4cm, align=left] (h3) {\textbf{PID 3510}\hfill hijo del proceso};
+
+  \node[font=\bfseries\small, text=azulprof, right=22mm of t1] (t2) {VISTA DEL CONTENEDOR};
+  \node[cverde, below=5mm of t2, text width=5.4cm, align=left] (c1) {\textbf{PID 1}\hfill aplicación principal};
+  \node[cverde, below=of c1, text width=5.4cm, align=left] (c2) {\textbf{PID 2}\hfill proceso hijo};
+  \draw[fl] (h2.east) -- node[etq, above]{mismo proceso} (c1.west);
+\end{tikzpicture}
+\end{center}
+
+\begin{aviso}
+Los números son ilustrativos: un PID visto dentro del contenedor \textbf{no identifica el
+mismo número} visto desde el host.
+\end{aviso}
+
+\subsection{Namespace NET: interfaces y puertos por entorno}
+
+Cada contenedor puede tener su propia tabla de rutas y su propio espacio de puertos.
+
+\begin{center}
+\begin{tikzpicture}[node distance=12mm]
+  \node[cazul, text width=3.6cm] (a) {\textbf{CONTENEDOR A}\\[2pt]\cmd{eth0} · 172.18.0.2\\\scriptsize puerto interno 80};
+  \node[caja, right=of a, text width=3.0cm] (br) {\textbf{bridge de red virtual}};
+  \node[cverde, right=of br, text width=3.6cm] (b) {\textbf{CONTENEDOR B}\\[2pt]\cmd{eth0} · 172.18.0.3\\\scriptsize puerto interno 80};
+  \draw[fl] (a)--(br); \draw[fl] (br)--(b);
+\end{tikzpicture}
+\end{center}
+
+Las IP y los puertos son ilustrativos; las interfaces se suelen enlazar mediante
+\textbf{pares veth} conectados a un puente.
+
+\subsection{Namespace MNT: distintas vistas de archivos}
+
+Dos procesos pueden recorrer la ruta \cmd{/app} y encontrar contenidos diferentes.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}l X X@{}}
+\toprule
+\textbf{\normalfont\color{azulprof} Entorno} & \textbf{\color{azulprof} Ruta observada} & \textbf{\color{azulprof} Contenido real} \\
+\midrule
+Host          & \cmd{/srv/app-uno}, \cmd{/srv/app-dos} & directorios físicos del anfitrión \\
+Contenedor A  & \cmd{/app}, \cmd{/config} & datos A, configuración A \\
+Contenedor B  & \cmd{/app}, \cmd{/config} & datos B, configuración B \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{errorbox}
+Separar puntos de montaje \textbf{no cifra automáticamente} los datos ni sustituye las
+autorizaciones del sistema (permisos, propietarios, políticas).
+\end{errorbox}
+
+\section{Cgroups: quién controla CPU y memoria}
+
+Un \textbf{cgroup} (\emph{control group}) agrupa procesos y permite \textbf{medir} o
+\textbf{restringir} su consumo de recursos. Los archivos de control más usados en
+\emph{cgroup v2} son \cmd{cpu.max} para CPU y \cmd{memory.max} para memoria.
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \node[font=\small\bfseries,anchor=east] at (-0.2,0.3) {Servicio A};
+  \draw[grislinea] (0,0) rectangle (8,0.6);
+  \fill[tealx] (0,0) rectangle (5.6,0.6);
+  \node[white,font=\small\bfseries] at (2.8,0.3) {70\%};
+  \node[font=\small\bfseries,anchor=east] at (-0.2,-0.9) {Servicio B};
+  \draw[grislinea] (0,-1.2) rectangle (8,-0.6);
+  \fill[azulmedio] (0,-1.2) rectangle (3.2,-0.6);
+  \node[white,font=\small\bfseries] at (1.6,-0.9) {40\%};
+\end{tikzpicture}
+\end{center}
+
+\subsection{Una cuota de CPU no representa una reserva exclusiva}
+
+El control \textbf{limita cuánto puede consumir} un grupo; no garantiza tiempo dedicado.
+Supongamos la configuración:
+
+\begin{codigo}
+cpu.max = 50000 100000      # cuota (us)  periodo (us)
+\end{codigo}
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \foreach \i in {0,...,4}{ \fill[tealx] (\i*1.3,0) rectangle (\i*1.3+1.2,0.8); }
+  \foreach \i in {5,...,9}{ \fill[grisfondo] (\i*1.3,0) rectangle (\i*1.3+1.2,0.8);
+                            \draw[grislinea] (\i*1.3,0) rectangle (\i*1.3+1.2,0.8); }
+  \foreach \i/\lab in {0/{0--10},1/{10--20},2/{20--30},3/{30--40},4/{40--50},
+                       5/{50--60},6/{60--70},7/{70--80},8/{80--90},9/{90--100}}
+    { \node[font=\tiny,text=azulmedio] at (\i*1.3+0.6,-0.25) {\lab}; }
+  \node[font=\small\bfseries,text=azulprof,anchor=west] at (0,-0.85) {Periodo de 100\,000 µs};
+  \node[font=\small\bfseries,text=azulprof,anchor=east] at (12.7,-0.85) {Cuota de 50\,000 µs};
+\end{tikzpicture}
+\end{center}
+
+\begin{aviso}
+\textbf{Interpretación:} se permite hasta \textbf{50 ms de CPU cada 100 ms} de periodo,
+equivalente a \textbf{0,5 CPU} en la cuota. Si el proceso agota la cuota antes de terminar
+el periodo, queda \emph{throttled} (limitado) hasta el siguiente periodo.
+\end{aviso}
+
+\subsection{La memoria puede limitarse y fallar por exceso}
+
+Si un cgroup no logra reducir su uso al acercarse al límite de \cmd{memory.max},
+pueden producirse eventos \textbf{OOM}.
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \draw[grislinea] (0,0) rectangle (11,0.9);
+  \fill[tealx] (0,0) rectangle (7.6,0.9);
+  \draw[vinox,line width=1pt] (7.6,-0.35) -- (7.6,1.25);
+  \node[font=\small\bfseries,text=vinox,anchor=south] at (8.9,1.3) {Límite duro · memory.max};
+  \node[font=\small\bfseries,text=azulprof,anchor=west] at (0,-0.8)
+    {Reclamar memoria \;$\rightarrow$\; si no alcanza: posible OOM del cgroup};
+\end{tikzpicture}
+\end{center}
+
+\begin{defbox}
+\textbf{OOM (\emph{Out Of Memory})} = condición de falta de memoria que puede terminar
+procesos del grupo. \textbf{No es idéntico} a consumir el 100\,\% de CPU: son fallas
+de naturaleza distinta y se diagnostican con contadores distintos.
+\end{defbox}
+
+\subsection{Aislamiento no equivale a seguridad absoluta}
+
+Un contenedor necesita \textbf{defensa en profundidad} además de namespaces y cgroups:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}l >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{\normalfont\color{azulprof} Capa} & \textbf{\color{azulprof} Aporte} \\
+\midrule
+Namespaces      & Separación de vistas \\
+Cgroups         & Límites y contabilidad de recursos \\
+Identidad       & UID no privilegiado y capacidades mínimas \\
+Seccomp / MAC   & Restricción de llamadas al sistema y operaciones \\
+Actualizaciones & Host, imágenes y aplicaciones al día \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Almacenamiento de contenedores}
+
+\subsection{Imagen, contenedor y volumen son objetos diferentes}
+
+\begin{center}
+\begin{tikzpicture}[node distance=12mm]
+  \node[cazul, text width=3.4cm] (im) {\textbf{IMAGEN}\\[3pt]\scriptsize capas base\\(solo lectura)\\[2pt]\emph{plantilla}};
+  \node[cverde, right=of im, text width=3.4cm] (co) {\textbf{CONTENEDOR}\\[3pt]\scriptsize capa escribible\\proceso en ejecución\\[2pt]\emph{instancia}};
+  \node[cambar, right=of co, text width=3.4cm] (vo) {\textbf{VOLUMEN}\\[3pt]\scriptsize datos externos a la\\capa escribible\\[2pt]\emph{persistencia}};
+  \draw[fl] (im)--(co); \draw[fl] (co)--(vo);
+\end{tikzpicture}
+\end{center}
+
+\begin{clave}
+Al eliminar un contenedor, su \textbf{capa escribible se elimina}; un volumen separado
+puede conservar los datos.
+\end{clave}
+
+\subsection{Persistencia: la vida de los datos no debe depender del proceso}
+
+Una base de datos necesita almacenamiento \textbf{fuera} de la capa escribible efímera.
+
+\begin{center}
+\begin{tikzpicture}[node distance=13mm]
+  \node[cosc, text width=3.0cm] (db) {\textbf{Proceso de base de datos}};
+  \node[cverde, right=of db, text width=2.8cm] (ct) {\textbf{Contenedor}};
+  \node[cambar, right=of ct, text width=3.0cm] (vl) {\textbf{Volumen persistente}};
+  \draw[fl] (db)--(ct); \draw[fl] (ct)--(vl);
+\end{tikzpicture}
+\end{center}
+
+\begin{aviso}
+El volumen puede persistir tras eliminar el contenedor, \textbf{pero sigue necesitando
+copias de seguridad}: persistencia no es respaldo.
+\end{aviso}
+
+\section{Docker: de un comando a un proceso aislado}
+
+Docker es una \textbf{plataforma de gestión} que utiliza funciones del kernel Linux;
+no es un mecanismo de aislamiento por sí mismo.
+
+\begin{center}
+\begin{tikzpicture}[node distance=7mm]
+  \node[cazul, text width=2.6cm] (cl) {\textbf{Cliente}\\[2pt]\cmd{docker run}};
+  \node[crosa, right=of cl, text width=2.6cm] (ap) {\textbf{API / daemon}\\[2pt]\cmd{dockerd}};
+  \node[cverde, right=of ap, text width=2.6cm] (rt) {\textbf{Runtime}\\[2pt]\scriptsize crea la instancia};
+  \node[cambar, right=of rt, text width=2.9cm] (ke) {\textbf{Kernel Linux}\\[2pt]\scriptsize namespaces + cgroups};
+  \draw[fl] (cl)--(ap); \draw[fl] (ap)--(rt); \draw[fl] (rt)--(ke);
+\end{tikzpicture}
+\end{center}
+
+\begin{clave}
+La terminal \textbf{no \textquotedblleft es\textquotedblright{} el contenedor}: envía una solicitud a componentes que
+crean y gestionan procesos.
+\end{clave}
+
+\subsection{Red Docker: ¿qué significa \texttt{-p 8080:80}?}
+
+Publica el puerto 80 del contenedor a través del puerto 8080 del host.
+
+\begin{center}
+\begin{tikzpicture}[node distance=14mm]
+  \node[caja, text width=2.6cm] (cli) {\textbf{Cliente de red}};
+  \node[cazul, right=of cli, text width=3.4cm] (host) {\textbf{HOST LINUX}\\[2pt]\cmd{IP\_HOST:8080}};
+  \node[cverde, right=of host, text width=3.4cm] (cont) {\textbf{CONTENEDOR}\\[2pt]\cmd{IP\_CONT:80}};
+  \draw[fl] (cli)--(host); \draw[fl] (host)--(cont);
+\end{tikzpicture}
+\end{center}
+
+\begin{defbox}
+\cmd{-p 8080:80} $\rightarrow$ \textbf{puerto publicado del host : puerto del contenedor}.
+\end{defbox}
+
+\begin{errorbox}
+Publicar un puerto es un \textbf{mecanismo de acceso de red}; \textbf{no modifica} el número
+de puerto en el que escucha el proceso interno.
+\end{errorbox}
+
+\subsection{Interpretar \texttt{docker run}}
+
+\begin{codigo}
+docker run --rm -d --name web -p 8080:80 nginx:alpine
+\end{codigo}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{}>{\ttfamily}l >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{\normalfont\color{azulprof} Elemento} & \textbf{\color{azulprof} Significado} \\
+\midrule
+nginx:alpine & imagen de ejemplo (plantilla de la que se crea la instancia) \\
+-{}-name web & nombre de instancia, para referirse al contenedor \\
+-d           & ejecución desacoplada (en segundo plano) \\
+-{}-rm       & eliminar el contenedor al finalizar \\
+-p 8080:80   & publicación de puerto host:contenedor \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{aviso}
+Requiere descarga de la imagen si no existe en caché; ejecutar \textbf{solo en un entorno
+autorizado}.
+\end{aviso}
+
+\subsection{Comandos Docker de inspección}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{}>{\ttfamily}l >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{\normalfont\color{azulprof} Comando} & \textbf{\color{azulprof} Qué informa} \\
+\midrule
+docker version      & identifica cliente y servidor disponibles \\
+docker images       & lista las imágenes almacenadas localmente \\
+docker ps           & lista los contenedores en ejecución \\
+docker inspect web  & presenta configuración y estado de \textquotedblleft web\textquotedblright \\
+docker logs web     & muestra la salida registrada de la aplicación \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Si Docker no está instalado, \textbf{interpretar los comandos y sus salidas simuladas es
+suficiente} para los fines de la sesión.
+
+%=======================================================================
+\bloque{Bloque 3 · Aplicación y diagnóstico}{Interpretación de evidencia Linux y decisiones de arquitectura}
+
+\section{Observar el sistema sin modificarlo}
+
+\subsection{Lectura de namespaces y cgroups}
+
+Estos comandos \textbf{inspeccionan} el sistema; sus resultados dependen del equipo:
+
+\begin{codigo}
+$ uname -r
+$ lsns -t pid,net
+$ readlink /proc/self/ns/net
+$ cat /proc/self/cgroup
+\end{codigo}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{}>{\ttfamily\bfseries}l >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{\normalfont\color{azulprof} Comando} & \textbf{\color{azulprof} Interpretación} \\
+\midrule
+uname -r  & versión del kernel que ejecuta Linux \\
+lsns      & namespaces visibles, según permisos del usuario \\
+readlink  & identificador del namespace del proceso actual \\
+/proc     & información expuesta por el kernel sobre procesos y cgroups \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{errorbox}
+\textbf{No copie salidas inventadas como evidencia real:} interprete las que devuelva cada
+instalación concreta.
+\end{errorbox}
+
+\subsection{Diagnóstico: ¿estamos dentro de una VM?}
+
+Tres señales orientan el análisis; \textbf{ninguna aislada prueba todo el entorno}.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{}>{\ttfamily\bfseries}l >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{\normalfont\color{azulprof} Señal} & \textbf{\color{azulprof} Qué aporta} \\
+\midrule
+systemd-detect-virt & puede identificar ciertas tecnologías de virtualización \\
+lscpu               & enumera propiedades de CPU; los campos dependen del hardware y del sistema \\
+/dev/kvm            & su existencia y permisos ayudan a examinar el soporte de KVM \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{aviso}
+\textbf{No confundir} \emph{soporte} de virtualización con una VM ya creada o en ejecución:
+la presencia de \cmd{/dev/kvm} indica capacidad del host, no que usted esté dentro de un invitado.
+\end{aviso}
+
+\section{Decidir entre VM y contenedor}
+
+\subsection{Caso A: aplicación heredada que exige otro kernel}
+
+\textbf{Requisito principal:} ejecutar software que depende de un sistema operativo invitado
+distinto al kernel del host.
+
+\begin{defbox}
+\textbf{Opción razonable: máquina virtual} con SO invitado compatible.\\
+\emph{Justificación:} permite un entorno invitado completo, con su kernel, sus servicios y
+sus dependencias propias; un contenedor Linux no puede aportar otro kernel.
+\end{defbox}
+
+\subsection{Caso B: varios microservicios Linux independientes}
+
+Tres componentes —\textbf{API}, \textbf{procesador} y \textbf{notificaciones}— usan software
+compatible con el kernel anfitrión y requieren despliegue frecuente.
+
+\begin{center}
+\begin{tikzpicture}[node distance=14mm]
+  \node[cverde, text width=2.6cm] (api) {\textbf{API}};
+  \node[cverde, right=of api, text width=2.6cm] (pro) {\textbf{Procesador}};
+  \node[cverde, right=of pro, text width=2.6cm] (not) {\textbf{Notificaciones}};
+  \node[cazul, below=11mm of pro, text width=11.5cm] (ker)
+    {\textbf{Kernel Linux compartido + aislamiento y límites por servicio}};
+  \draw[fl] (api)--(ker); \draw[fl] (pro)--(ker); \draw[fl] (not)--(ker);
+\end{tikzpicture}
+\end{center}
+
+\begin{defbox}
+\textbf{Candidato: contenedores}, con control de recursos (cgroups), seguridad, red y
+persistencia definidas según el servicio.
+\end{defbox}
+
+\subsection{Comparación técnica: VM y contenedor}
+
+La elección depende de \textbf{requisitos}, no de una etiqueta de \textquotedblleft mejor tecnología\textquotedblright.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{\normalfont\color{azulprof} Dimensión} & \textbf{\color{azulprof} Máquina virtual} & \textbf{\color{azulprof} Contenedor Linux} \\
+\midrule
+Kernel       & Propio del SO invitado          & Compartido con el host Linux \\
+Inicio       & Arranque de SO invitado         & Inicio de procesos aislados \\
+Recursos     & Dispositivos / CPU / RAM virtuales & Recursos del host regulados \\
+Dependencias & Puede incorporar otro SO        & Espacio de usuario compatible \\
+Aislamiento  & Frontera de virtualización      & Frontera basada en kernel y políticas \\
+Datos        & Disco / volumen de VM           & Capa escribible y volúmenes \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Ejercicios resueltos}
+
+\subsection*{Ejercicio 1 · Recursos compartidos}
+
+\textbf{Enunciado.} Un servidor tiene \textbf{8 núcleos físicos y 16 GiB de RAM}.
+Dos máquinas virtuales solicitan \textbf{6 vCPU y 6 GiB} cada una.
+
+\begin{center}
+\begin{tikzpicture}[node distance=12mm]
+  \node[cazul, text width=3.6cm] (h) {\textbf{HOST}\\[3pt]8 núcleos físicos\\16 GiB RAM};
+  \node[cverde, right=of h, text width=3.0cm] (a) {\textbf{VM A}\\[3pt]6 vCPU\\6 GiB RAM};
+  \node[cverde, right=of a, text width=3.0cm] (b) {\textbf{VM B}\\[3pt]6 vCPU\\6 GiB RAM};
+\end{tikzpicture}
+\end{center}
+
+\textbf{Resolución.}
+\begin{itemize}
+  \item \textbf{CPU:} $6 + 6 = 12$ vCPU configuradas frente a 8 núcleos físicos.
+        Hay \emph{sobresuscripción}: es admisible porque las vCPU no consumen tiempo
+        permanentemente, pero bajo carga simultánea habrá competencia y latencia.
+  \item \textbf{Memoria:} $6 + 6 = 12$ GiB asignados a las VM dejan \textbf{4 GiB} para el
+        host y su margen operativo. La memoria, a diferencia de la CPU, no se
+        \textquotedblleft turna\textquotedblright: si el uso real se acerca al total, aparece presión de memoria.
+\end{itemize}
+
+\begin{clave}
+\textbf{Conclusión:} la configuración es viable solo si el uso real de CPU es moderado y
+si 4 GiB bastan para el anfitrión. Asignar no equivale a disponer.
+\end{clave}
+
+\subsection*{Ejercicio 2 · Dos contenedores escuchan en el puerto 80}
+
+\textbf{Enunciado.} El contenedor A se publica con \cmd{-p 8080:80} y el contenedor B con
+\cmd{-p 8081:80}. ¿Por qué es válido que ambos usen internamente el puerto 80?
+
+\begin{center}
+\begin{tikzpicture}[node distance=5mm]
+  \node[caja, text width=3.2cm] (h1) {\textbf{HOST :8080}};
+  \node[cazul, right=18mm of h1, text width=4.0cm] (a) {\textbf{Contenedor A :80}};
+  \node[caja, below=10mm of h1, text width=3.2cm] (h2) {\textbf{HOST :8081}};
+  \node[cverde, right=18mm of h2, text width=4.0cm] (b) {\textbf{Contenedor B :80}};
+  \draw[fl] (h1)--(a); \draw[fl] (h2)--(b);
+\end{tikzpicture}
+\end{center}
+
+\textbf{Resolución.} Los puertos internos pertenecen a \textbf{namespaces de red separados}:
+cada contenedor tiene su propia pila y su propio espacio de puertos, de modo que el
+\textquotedblleft puerto 80\textquotedblright{} de A y el de B son objetos distintos. En el host, en cambio, el espacio
+de puertos es único, y por eso las publicaciones deben usar números diferentes (8080 y 8081).
+
+\subsection*{Ejercicio 3 · Identificar la causa probable}
+
+\textbf{Enunciado.} Una aplicación se ralentiza. Se dispone de la siguiente evidencia:
+
+\begin{codigo}
+cpu.stat
+  nr_throttled    135
+  throttled_usec  950000
+
+memory.events
+  oom       0
+  oom_kill  0
+\end{codigo}
+
+\textbf{Hipótesis inicial.} Hay \textbf{señales de limitación por cuota de CPU}
+(\cmd{nr\_throttled} y \cmd{throttled\_usec} crecen), mientras que los contadores de
+memoria mostrados \textbf{no indican terminaciones por OOM}. La ralentización es
+coherente con \emph{throttling} del cgroup, no con falta de memoria.
+
+\begin{errorbox}
+\textbf{No afirmar causalidad solo con un contador:} hay que comparar intervalos de tiempo,
+carga, latencia y configuración antes de concluir.
+\end{errorbox}
+
+\subsection*{Ejercicio autónomo · Justificar una arquitectura}
+
+Una plataforma de monitoreo debe integrar un componente heredado y cuatro servicios Linux.
+Responda y \emph{justifique}:
+
+\begin{enumerate}[label=\textbf{\Alph*.}]
+  \item ¿Qué parte conviene evaluar como VM si exige un SO invitado diferente?
+  \item ¿Qué componentes podrían ser contenedores si comparten el kernel Linux?
+  \item ¿Cómo separaría redes, procesos y límites de recursos?
+  \item ¿Dónde almacenaría datos que deben sobrevivir a recreaciones?
+  \item ¿Qué comandos de solo lectura usaría para obtener evidencia?
+\end{enumerate}
+
+%=======================================================================
+\section{Cierre}
+
+\subsection*{Mapa conceptual: ¿dónde se produce el aislamiento?}
+
+Tres preguntas evitan mezclar tecnologías:
+
+\begin{center}
+\begin{tikzpicture}[node distance=8mm]
+  \node[cazul, text width=3.7cm] (q1) {\textbf{¿Quién tiene el kernel?}\\[3pt]\scriptsize VM: invitado propio\\Contenedor: host común};
+  \node[cverde, right=of q1, text width=3.7cm] (q2) {\textbf{¿Quién ve los recursos?}\\[3pt]\scriptsize Namespaces alteran la vista de determinados recursos};
+  \node[cambar, right=of q2, text width=3.7cm] (q3) {\textbf{¿Quién controla el consumo?}\\[3pt]\scriptsize Cgroups contabilizan y limitan CPU, memoria y otros};
+\end{tikzpicture}
+\end{center}
+
+\begin{clave}
+Recurso físico compartido $\neq$ vista compartida $\neq$ kernel compartido:
+son \textbf{propiedades distintas} y conviene nombrarlas por separado.
+\end{clave}
+
+\subsection*{Conclusión de la sesión}
+
+\begin{tcolorbox}[enhanced, colback=azulprof, colframe=azulprof, arc=3pt,
+  left=14pt,right=14pt,top=12pt,bottom=12pt]
+{\color{white}\large\bfseries Virtualizar es crear un entorno de máquina.\\
+Contenerizar es aislar procesos.}\\[6pt]
+{\color{white!80!azulmedio}\small Para escoger: kernel requerido, recursos, red, datos,
+seguridad y operación.}
+\end{tcolorbox}
+
+%=======================================================================
+\section*{Fuentes técnicas y lecturas recomendadas}
+\addcontentsline{toc}{section}{Fuentes}
+
+\begin{itemize}[leftmargin=1.2em]
+  \item \textbf{Linux man-pages — namespaces(7).}\\ \url{https://man7.org/linux/man-pages/man7/namespaces.7.html}
+  \item \textbf{Linux Kernel — Control Group v2.}\\ \url{https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html}
+  \item \textbf{libvirt — QEMU/KVM hypervisor driver.}\\ \url{https://www.libvirt.org/drvqemu.html}
+  \item \textbf{Docker Docs — Docker overview.}\\ \url{https://docs.docker.com/get-started/docker-overview/}
+  \item \textbf{Docker Docs — Networking.}\\ \url{https://docs.docker.com/engine/network/}
+  \item \textbf{Docker Docs — Volumes.}\\ \url{https://docs.docker.com/engine/storage/volumes/}
+\end{itemize}
+
+\end{document}
